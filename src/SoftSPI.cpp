@@ -28,13 +28,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * This version of the code has been modified to work as a 3-wire SPI master.
+ */
+
 
 #include <SoftSPI.h>
 
-SoftSPI::SoftSPI(uint8_t mosi, uint8_t miso, uint8_t sck) {
+SoftSPI::SoftSPI(uint8_t mosi, uint8_t miso, uint8_t sck, uint8_t CS) {
     _mosi = mosi;
     _miso = miso;
     _sck = sck;
+    _CS = CS;
     _delay = 2;
     _cke = 0;
     _ckp = 0;
@@ -45,12 +50,14 @@ void SoftSPI::begin() {
     pinMode(_mosi, OUTPUT);
     pinMode(_miso, INPUT);
     pinMode(_sck, OUTPUT);
+    pinMode(_CS, OUTPUT);
 }
 
 void SoftSPI::end() {
     pinMode(_mosi, INPUT);
     pinMode(_miso, INPUT);
     pinMode(_sck, INPUT);
+    pinMode(_CS, INPUT);
 }
 
 void SoftSPI::setBitOrder(uint8_t order) {
@@ -115,8 +122,7 @@ void SoftSPI::wait(uint_fast8_t del) {
     }
 }
 
-uint8_t SoftSPI::transfer(uint8_t val) {
-    uint8_t out = 0;
+void SoftSPI::WriteByte(uint8_t val, uint8_t D_C) {
     if (_order == MSBFIRST) {
         uint8_t v2 = 
             ((val & 0x01) << 7) |
@@ -129,6 +135,81 @@ uint8_t SoftSPI::transfer(uint8_t val) {
             ((val & 0x80) >> 7);
         val = v2;
     }
+
+    uint8_t del = _delay >> 1;
+
+    /*
+     * CPOL := 0, CPHA := 0 => INIT = 0, PRE = Z|0, MID = 1, POST =  0
+     * CPOL := 1, CPHA := 0 => INIT = 1, PRE = Z|1, MID = 0, POST =  1
+     * CPOL := 0, CPHA := 1 => INIT = 0, PRE =  1 , MID = 0, POST = Z|0
+     * CPOL := 1, CPHA := 1 => INIT = 1, PRE =  0 , MID = 1, POST = Z|1
+     */
+
+    int sck = (_ckp) ? HIGH : LOW;
+    
+    //chip select is disabled at first
+    CS = 1;
+    digitalWrite(_CS, CS);
+    
+    //To start the communication we enable the chip select signal first
+    CS = 0;
+    digitalWrite(_CS, CS);
+    wait(del);
+	
+    //Send the command/data bit (D/C#) first
+    //When D/C# bit is 1, the following byte is data	
+    if (_cke) {
+            sck ^= 1;
+            digitalWrite(_sck, sck);            
+            wait(del);
+        }
+    
+    digitalWrite(_mosi, ((D_C) ? HIGH : LOW));
+
+    wait(del);
+
+    sck ^= 1u; digitalWrite(_sck, sck);
+    
+    wait(del);
+
+        if (!_cke) {
+            sck ^= 1u;
+            digitalWrite(_sck, sck);
+        }
+	
+    for (uint8_t bit = 0u; bit < 8u; bit++)
+    {
+        if (_cke) {
+            sck ^= 1;
+            digitalWrite(_sck, sck);            
+            wait(del);
+        }
+
+        /* ... Write bit */
+        digitalWrite(_mosi, ((val & (1<<bit)) ? HIGH : LOW));
+
+        wait(del);
+
+        sck ^= 1u; digitalWrite(_sck, sck);
+
+        wait(del);
+
+        if (!_cke) {
+            sck ^= 1u;
+            digitalWrite(_sck, sck);
+        }
+    }
+	
+    //disable chip select	
+    wait(del);
+    CS = 1;
+    digitalWrite(_CS, CS);
+	
+    return out;
+}
+
+uint8_t SoftSPI::ReadByte() {
+    uint8_t out = 0;
 
     uint8_t del = _delay >> 1;
 
@@ -149,9 +230,6 @@ uint8_t SoftSPI::transfer(uint8_t val) {
             digitalWrite(_sck, sck);            
             wait(del);
         }
-
-        /* ... Write bit */
-        digitalWrite(_mosi, ((val & (1<<bit)) ? HIGH : LOW));
 
         wait(del);
 
