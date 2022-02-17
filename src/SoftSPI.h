@@ -55,7 +55,7 @@ class SoftSPI : public SPIClass {
         uint8_t _order;
 
     public:
-        SoftSPI(uint8_t mosi, uint8_t miso, uint8_t sck);
+        SoftSPI(uint8_t mosi, uint8_t miso, uint8_t sck, uint8_t CS);
         void begin();
         void end();
         void setBitOrder(uint8_t);
