@@ -146,6 +146,7 @@ void SoftSPI::WriteByte(uint8_t val, uint8_t D_C) {
      */
 
     int sck = (_ckp) ? HIGH : LOW;
+    digitalWrite(_sck, sck); 
     
     //chip select is disabled at first
     CS = 1;
@@ -205,7 +206,6 @@ void SoftSPI::WriteByte(uint8_t val, uint8_t D_C) {
     CS = 1;
     digitalWrite(_CS, CS);
 	
-    return out;
 }
 
 uint8_t SoftSPI::ReadByte() {
@@ -222,7 +222,8 @@ uint8_t SoftSPI::ReadByte() {
      */
 
     int sck = (_ckp) ? HIGH : LOW;
-
+    digitalWrite(_sck, sck); 
+	
     for (uint8_t bit = 0u; bit < 8u; bit++)
     {
         if (_cke) {
