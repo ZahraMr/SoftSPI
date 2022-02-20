@@ -39,7 +39,7 @@ SoftSPI::SoftSPI(uint8_t mosi, uint8_t miso, uint8_t sck, uint8_t CS) {
     _mosi = mosi;
     _miso = miso;
     _sck = sck;
-    _CS = CS;
+    _ss = CS;
     _delay = 2;
     _cke = 0;
     _ckp = 0;
@@ -150,11 +150,11 @@ void SoftSPI::WriteByte(uint8_t val, uint8_t D_C) {
     
     //chip select is disabled at first
     CS = 1;
-    digitalWrite(_CS, CS);
+    digitalWrite(_ss, CS);
     
     //To start the communication we enable the chip select signal first
     CS = 0;
-    digitalWrite(_CS, CS);
+    digitalWrite(_ss, CS);
     wait(del);
 	
     //Send the command/data bit (D/C#) first
@@ -204,7 +204,7 @@ void SoftSPI::WriteByte(uint8_t val, uint8_t D_C) {
     //disable chip select	
     wait(del);
     CS = 1;
-    digitalWrite(_CS, CS);
+    digitalWrite(_ss, CS);
 	
 }
 
