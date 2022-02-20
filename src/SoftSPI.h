@@ -51,7 +51,7 @@ class SoftSPI : public SPIClass {
         uint8_t _miso;
         uint8_t _mosi;
         uint8_t _sck;
-	uint8_t _CS;
+	uint8_t _ss;
         uint8_t _order;
 
     public:
